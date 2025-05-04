@@ -2,6 +2,19 @@ repeat wait() until game:IsLoaded()
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local boxfolder = workspace.Map.spawnPoints.Box
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+local firePrompt = function()
+    if fireproximityprompt then
+        for _, d in ipairs(workspace:GetDescendants()) do
+            if d:IsA("ProximityPrompt") then
+                fireproximityprompt(d)
+            end
+        end
+    else
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+    end
+end
 
 local safePos = Vector3.new(-821, 740, -21)
 
@@ -44,11 +57,7 @@ local function nbf()
                 if base then
                     hrp.CFrame = CFrame.new(base.Position + Vector3.new(0, 2, 0))
                     task.wait(0.3)
-                    for _, descendant in ipairs(workspace:GetDescendants()) do
-                        if descendant:IsA("ProximityPrompt") then
-                            fireproximityprompt(descendant)
-                        end
-                    end
+                    firePrompt()
                     break
                 end
             end
@@ -72,11 +81,7 @@ local function sbf()
                 if base then
                     hrp.CFrame = CFrame.new(base.Position + Vector3.new(0, 2, 0))
                     task.wait(0.3)
-                    for _, descendant in ipairs(workspace:GetDescendants()) do
-                        if descendant:IsA("ProximityPrompt") then
-                            fireproximityprompt(descendant)
-                        end
-                    end
+                    firePrompt()
                     found = true
                     break
                 end
@@ -109,7 +114,7 @@ local Window = WindUI:CreateWindow({
 local Tabs = {
     main = Window:Tab({ Title = "Main", Icon = "pin" }),
 }
-Window:SetToggleKey(Enum.KeyCode.P)
+
 Window:SelectTab(1)
 
 Tabs.main:Section({ Title = "Farm" })
@@ -146,10 +151,13 @@ Tabs.main:Toggle({
             task.spawn(sbf)
         else
             safe = false
+            task.wait(0.2)
             if hrp and safeReturnPos then
-                task.wait(0.2)
                 hrp.CFrame = CFrame.new(safeReturnPos + Vector3.new(0, 1, 0))
                 task.wait(0.05)
+                if normal then
+                    task.spawn(nbf)
+                end
             end
         end
     end
