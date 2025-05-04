@@ -109,7 +109,7 @@ local Window = WindUI:CreateWindow({
 local Tabs = {
     main = Window:Tab({ Title = "Main", Icon = "pin" }),
 }
-
+Window:SetToggleKey(Enum.KeyCode.P)
 Window:SelectTab(1)
 
 Tabs.main:Section({ Title = "Farm" })
