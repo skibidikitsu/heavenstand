@@ -133,7 +133,7 @@ local Window = WindUI:CreateWindow({
     SideBarWidth = 200,
     HasOutline = true,
 })
-
+Window:SetToggleKey(Enum.KeyCode.P)
 local Tabs = {
     main = Window:Tab({ Title = "Main", Icon = "pin" }),
 }
