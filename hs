@@ -28,6 +28,7 @@ end)
 
 local normal = false
 local safe = false
+local autoSell = false
 local selectedPlace = "Heaven Store"
 local safeReturnPos = nil
 local toggledSafe = false
@@ -42,6 +43,28 @@ local pos = {
     ["Field"] = Vector3.new(-194, 693, 0),
     ["Stand Storage"] = Vector3.new(-118, 693, -307)
 }
+
+local function checkAndSell()
+	local inventory = player:FindFirstChild("Backpack") or player:WaitForChild("Backpack")
+	local itemCount = 0
+
+	for _, item in ipairs(inventory:GetChildren()) do
+		itemCount += 1
+	end
+
+	if itemCount >= 100 then
+		local args = {
+			buffer.fromstring("\006"),
+			{
+				{
+					true,
+					true
+				}
+			}
+		}
+		game.ReplicatedStorage.Utility.Warp.Index.Event.Reliable:FireServer(unpack(args))
+	end
+end
 
 local function nbf()
     while normal do
@@ -110,7 +133,6 @@ local Window = WindUI:CreateWindow({
     SideBarWidth = 200,
     HasOutline = true,
 })
-Window:SetToggleKey(Enum.KeyCode.P)
 
 local Tabs = {
     main = Window:Tab({ Title = "Main", Icon = "pin" }),
@@ -165,6 +187,44 @@ Tabs.main:Toggle({
 })
 
 Tabs.main:Toggle({
+    Title = "auto sell item",
+    Default = false,
+    Callback = function(state)
+        autoSell = state
+    end
+})
+Tabs.main:Section({ Title = "^^ only sell when item in backpack is 100+ ^^"})
+
+Tabs.main:Button({
+	Title = "sell inventory",
+	Callback = function()
+		local args = {
+			buffer.fromstring("\006"),
+			{
+				{
+					true,
+					true
+				}
+			}
+		}
+		game.ReplicatedStorage.Utility.Warp.Index.Event.Reliable:FireServer(unpack(args))
+	end
+})
+
+Tabs.main:Button({
+	Title = "sell in-hand",
+	Callback = function()
+		local args = {
+			buffer.fromstring("\006"),
+			{
+				{}
+			}
+		}
+		game.ReplicatedStorage.Utility.Warp.Index.Event.Reliable:FireServer(unpack(args))
+	end
+})
+
+Tabs.main:Toggle({
     Title = "save gpu usage",
     Default = false,
     Callback = function(state)
@@ -207,5 +267,53 @@ Tabs.main:Button({
         if hrp and pos[selectedPlace] then
             hrp.CFrame = CFrame.new(pos[selectedPlace])
         end
+    end
+})
+
+Tabs.main:Section({ Title = "Misc\n"})
+Tabs.main:Section({ Title = "Gacha"})
+
+Tabs.main:Button({
+    Title = "buy coin (1)",
+    Callback = function()
+        local args = {
+            buffer.fromstring("\022"),
+            {
+                {
+                    "Coin"
+                }
+            }
+        }
+        game:GetService("ReplicatedStorage"):WaitForChild("Utility"):WaitForChild("Warp"):WaitForChild("Index"):WaitForChild("Event"):WaitForChild("Reliable"):FireServer(unpack(args))
+    end
+})
+
+Tabs.main:Button({
+    Title = "Spin 1",
+    Callback = function()
+        local args = {
+            buffer.fromstring("\013"),
+            {
+                {
+                    1
+                }
+            }
+        }
+        game:GetService("ReplicatedStorage"):WaitForChild("Utility"):WaitForChild("Warp"):WaitForChild("Index"):WaitForChild("Event"):WaitForChild("Reliable"):FireServer(unpack(args))
+    end
+})
+
+Tabs.main:Button({
+    Title = "Spin 10",
+    Callback = function()
+        local args = {
+            buffer.fromstring("\013"),
+            {
+                {
+                    10
+                }
+            }
+        }
+        game:GetService("ReplicatedStorage"):WaitForChild("Utility"):WaitForChild("Warp"):WaitForChild("Index"):WaitForChild("Event"):WaitForChild("Reliable"):FireServer(unpack(args))
     end
 })
