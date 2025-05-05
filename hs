@@ -34,6 +34,8 @@ local safeReturnPos = nil
 local toggledSafe = false
 local lastSafeTogglePos = nil
 local returnFromFarmPos = nil
+local saveDeathPos = false
+local lastDeathPos = nil
 
 local pos = {
     ["AMM Cafe"] = Vector3.new(-82, 693, -501),
@@ -65,6 +67,25 @@ local function checkAndSell()
 		game.ReplicatedStorage.Utility.Warp.Index.Event.Reliable:FireServer(unpack(args))
 	end
 end
+
+player.CharacterAdded:Connect(function(char)
+	local hum = char:WaitForChild("Humanoid")
+	local root = char:WaitForChild("HumanoidRootPart")
+
+	hum.Died:Connect(function()
+		if saveDeathPos then
+			lastDeathPos = root.Position
+		end
+		player.CharacterAdded:Wait()
+		local respawnedChar = player.Character
+		local respawnedRoot = respawnedChar:WaitForChild("HumanoidRootPart")
+		repeat task.wait() until respawnedRoot
+		task.wait(0.1)
+		if saveDeathPos and lastDeathPos then
+			respawnedRoot.CFrame = CFrame.new(lastDeathPos)
+		end
+	end)
+end)
 
 local function nbf()
     while normal do
@@ -271,49 +292,81 @@ Tabs.main:Button({
 })
 
 Tabs.main:Section({ Title = "Misc\n"})
+
+Tabs.main:Toggle({
+	Title = "tp to death pos",
+	Default = false,
+	Callback = function(state)
+		saveDeathPos = state
+		if not state then
+			lastDeathPos = nil
+		end
+	end
+})
+
 Tabs.main:Section({ Title = "Gacha"})
+
+local function buycoin()
+    local args = {
+        buffer.fromstring("\022"),
+        {
+            {
+                "Coin"
+            }
+        }
+    }
+    game:GetService("ReplicatedStorage"):WaitForChild("Utility"):WaitForChild("Warp"):WaitForChild("Index"):WaitForChild("Event"):WaitForChild("Reliable"):FireServer(unpack(args))
+end
+
+local function spin()
+    local args = {
+        buffer.fromstring("\013"),
+        {
+            {
+                1
+            }
+        }
+    }
+    game:GetService("ReplicatedStorage"):WaitForChild("Utility"):WaitForChild("Warp"):WaitForChild("Index"):WaitForChild("Event"):WaitForChild("Reliable"):FireServer(unpack(args))
+end
 
 Tabs.main:Button({
     Title = "buy coin (1)",
     Callback = function()
-        local args = {
-            buffer.fromstring("\022"),
-            {
-                {
-                    "Coin"
-                }
-            }
-        }
-        game:GetService("ReplicatedStorage"):WaitForChild("Utility"):WaitForChild("Warp"):WaitForChild("Index"):WaitForChild("Event"):WaitForChild("Reliable"):FireServer(unpack(args))
+        buycoin()
+    end
+})
+
+Tabs.main:Button({
+    Title = "buy coin (5)",
+    Callback = function()
+        for i = 1, 5 do
+            buycoin()
+        end
     end
 })
 
 Tabs.main:Button({
     Title = "Spin 1",
     Callback = function()
-        local args = {
-            buffer.fromstring("\013"),
-            {
-                {
-                    1
-                }
-            }
-        }
-        game:GetService("ReplicatedStorage"):WaitForChild("Utility"):WaitForChild("Warp"):WaitForChild("Index"):WaitForChild("Event"):WaitForChild("Reliable"):FireServer(unpack(args))
+        spin()
+    end
+})
+
+Tabs.main:Button({
+    Title = "Spin 5",
+    Callback = function()
+        for i = 1, 5 do
+            spin()
+        end
     end
 })
 
 Tabs.main:Button({
     Title = "Spin 10",
     Callback = function()
-        local args = {
-            buffer.fromstring("\013"),
-            {
-                {
-                    10
-                }
-            }
-        }
-        game:GetService("ReplicatedStorage"):WaitForChild("Utility"):WaitForChild("Warp"):WaitForChild("Index"):WaitForChild("Event"):WaitForChild("Reliable"):FireServer(unpack(args))
+        for i = 1, 10 do
+            spin()
+        end
     end
 })
