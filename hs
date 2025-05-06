@@ -1,4 +1,6 @@
 repeat wait() until game:IsLoaded()
+setfpscap(60000)
+
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local boxfolder = workspace.Map.spawnPoints.Box
@@ -46,97 +48,80 @@ local pos = {
     ["Stand Storage"] = Vector3.new(-118, 693, -307)
 }
 
-local function checkAndSell()
-	local inventory = player:FindFirstChild("Backpack") or player:WaitForChild("Backpack")
-	local itemCount = 0
-
-	for _, item in ipairs(inventory:GetChildren()) do
-		itemCount += 1
-	end
-
-	if itemCount >= 100 then
-		local args = {
-			buffer.fromstring("\006"),
-			{
-				{
-					true,
-					true
-				}
-			}
-		}
-		game.ReplicatedStorage.Utility.Warp.Index.Event.Reliable:FireServer(unpack(args))
-	end
+local function sell()
+    local args = {
+        buffer.fromstring("\006"),
+        {
+            {
+                true,
+                true
+            }
+        }
+    }
+    game.ReplicatedStorage.Utility.Warp.Index.Event.Reliable:FireServer(unpack(args))
 end
 
 player.CharacterAdded:Connect(function(char)
-	local hum = char:WaitForChild("Humanoid")
-	local root = char:WaitForChild("HumanoidRootPart")
+    local hum = char:WaitForChild("Humanoid")
+    local root = char:WaitForChild("HumanoidRootPart")
+    hum.Died:Connect(function()
+        if saveDeathPos then
+            lastDeathPos = root.Position
+        end
+    end)
+end)
 
-	hum.Died:Connect(function()
-		if saveDeathPos then
-			lastDeathPos = root.Position
-		end
-		player.CharacterAdded:Wait()
-		local respawnedChar = player.Character
-		local respawnedRoot = respawnedChar:WaitForChild("HumanoidRootPart")
-		repeat task.wait() until respawnedRoot
-		task.wait(0.1)
-		if saveDeathPos and lastDeathPos then
-			respawnedRoot.CFrame = CFrame.new(lastDeathPos)
-		end
-	end)
+local function teleportToLastDeath()
+    if saveDeathPos and lastDeathPos then
+        task.wait(0.07)
+        local newChar = player.Character or player.CharacterAdded:Wait()
+        local newRoot = newChar:WaitForChild("HumanoidRootPart")
+        newRoot.CFrame = CFrame.new(lastDeathPos)
+    end
+end
+
+player.CharacterAdded:Connect(function()
+    if saveDeathPos and lastDeathPos then
+        teleportToLastDeath()
+    end
 end)
 
 local function nbf()
     while normal do
-        if not hrp then
-            if character then hrp = character:FindFirstChild("HumanoidRootPart") end
-        end
-        if not hrp then task.wait() continue end
-
+        if not hrp then task.wait(0.2) continue end
         for _, part in pairs(boxfolder:GetChildren()) do
             local box = part:FindFirstChild("Box")
-            if box then
-                local base = box:FindFirstChild("Base")
-                if base then
-                    hrp.CFrame = CFrame.new(base.Position + Vector3.new(0, 2, 0))
-                    task.wait(0.3)
-                    firePrompt()
-                    break
-                end
+            local base = box and box:FindFirstChild("Base")
+            if base then
+                hrp.CFrame = CFrame.new(base.Position + Vector3.new(0, 2, 0))
+                task.wait(0.3)
+                firePrompt()
+                break
             end
         end
-        task.wait()
+        task.wait(0.5)
     end
 end
 
 local function sbf()
     while safe do
-        if not hrp then
-            if character then hrp = character:FindFirstChild("HumanoidRootPart") end
-        end
-        if not hrp then task.wait() continue end
-
+        if not hrp then task.wait(0.2) continue end
         local found = false
         for _, part in pairs(boxfolder:GetChildren()) do
             local box = part:FindFirstChild("Box")
-            if box then
-                local base = box:FindFirstChild("Base")
-                if base then
-                    hrp.CFrame = CFrame.new(base.Position + Vector3.new(0, 2, 0))
-                    task.wait(0.3)
-                    firePrompt()
-                    found = true
-                    break
-                end
+            local base = box and box:FindFirstChild("Base")
+            if base then
+                hrp.CFrame = CFrame.new(base.Position + Vector3.new(0, 2, 0))
+                task.wait(0.3)
+                firePrompt()
+                found = true
+                break
             end
         end
-
         if not found then
             hrp.CFrame = CFrame.new(safePos)
         end
-
-        task.wait()
+        task.wait(0.6)
     end
 end
 
@@ -155,10 +140,10 @@ local Window = WindUI:CreateWindow({
     HasOutline = true,
 })
 Window:SetToggleKey(Enum.KeyCode.P)
+
 local Tabs = {
     main = Window:Tab({ Title = "Main", Icon = "pin" }),
 }
-
 Window:SelectTab(1)
 
 Tabs.main:Section({ Title = "Farm" })
@@ -169,9 +154,7 @@ Tabs.main:Toggle({
     Callback = function(state)
         normal = state
         if state then
-            if hrp then
-                returnFromFarmPos = hrp.Position
-            end
+            returnFromFarmPos = hrp and hrp.Position
             task.spawn(nbf)
         else
             if hrp and returnFromFarmPos then
@@ -189,9 +172,7 @@ Tabs.main:Toggle({
     Callback = function(state)
         safe = state
         if state then
-            if hrp then
-                safeReturnPos = hrp.Position
-            end
+            safeReturnPos = hrp and hrp.Position
             task.spawn(sbf)
         else
             safe = false
@@ -208,71 +189,49 @@ Tabs.main:Toggle({
 })
 
 Tabs.main:Toggle({
-    Title = "auto sell item",
-    Default = false,
-    Callback = function(state)
-        autoSell = state
-    end
-})
-Tabs.main:Section({ Title = "^^ only sell when item in backpack is 100+ ^^"})
-
-Tabs.main:Button({
-	Title = "sell inventory",
-	Callback = function()
-		local args = {
-			buffer.fromstring("\006"),
-			{
-				{
-					true,
-					true
-				}
-			}
-		}
-		game.ReplicatedStorage.Utility.Warp.Index.Event.Reliable:FireServer(unpack(args))
-	end
-})
-
-Tabs.main:Button({
-	Title = "sell in-hand",
-	Callback = function()
-		local args = {
-			buffer.fromstring("\006"),
-			{
-				{}
-			}
-		}
-		game.ReplicatedStorage.Utility.Warp.Index.Event.Reliable:FireServer(unpack(args))
-	end
-})
-
-Tabs.main:Toggle({
     Title = "save gpu usage",
     Default = false,
     Callback = function(state)
         game:GetService("RunService"):Set3dRenderingEnabled(not state)
     end
 })
+Tabs.main:Section({ Title = "Item" })
+
+local Paragraph = Tabs.main:Paragraph({
+    Title = "Item count",
+    Desc = "",
+})
+
+task.spawn(function()
+    while true do
+        task.wait(0.05)
+        local backpack = player:FindFirstChild("Backpack")
+        if backpack then
+            Paragraph:SetDesc("Items: " .. #backpack:GetChildren())
+        end
+    end
+end)
 
 Tabs.main:Button({
-    Title = "tp to safe pos",
+    Title = "sell inventory",
     Callback = function()
-        if not hrp then return end
-        if not toggledSafe then
-            lastSafeTogglePos = hrp.Position
-            hrp.CFrame = CFrame.new(safePos)
-            toggledSafe = true
-        else
-            if lastSafeTogglePos then
-                hrp.CFrame = CFrame.new(lastSafeTogglePos)
-            end
-            toggledSafe = false
-        end
+        sell()
     end
 })
 
-Tabs.main:Section({ Title = "^^ click again to teleport back ^^" })
-Tabs.main:Section({ Title = "\nTeleport" })
-
+Tabs.main:Button({
+    Title = "sell in-hand",
+    Callback = function()
+        local args = {
+            buffer.fromstring("\006"),
+            {
+                {}
+            }
+        }
+        game.ReplicatedStorage.Utility.Warp.Index.Event.Reliable:FireServer(unpack(args))
+    end
+})
+Tabs.main:Section({ Title = "Teleport" })
 Tabs.main:Dropdown({
     Title = "place to teleport",
     Values = { "Heaven Store", "Stand Storage", "AMM Cafe", "Field", "Gacha Center", "Colosseum" },
@@ -290,21 +249,27 @@ Tabs.main:Button({
         end
     end
 })
-
-Tabs.main:Section({ Title = "Misc\n"})
+Tabs.main:Section({ Title = "Misc" })
 
 Tabs.main:Toggle({
-	Title = "tp to death pos",
-	Default = false,
-	Callback = function(state)
-		saveDeathPos = state
-		if not state then
-			lastDeathPos = nil
-		end
-	end
+    Title = "tp to death pos",
+    Default = false,
+    Callback = function(state)
+        saveDeathPos = state
+        if not state then
+            lastDeathPos = nil
+        end
+    end
 })
 
-Tabs.main:Section({ Title = "Gacha"})
+Tabs.main:Button({
+    Title = "open stand storage",
+    Callback = function()
+        player.PlayerGui.MainScreen.Main.Storage.Visible = true
+    end
+})
+
+Tabs.main:Section({ Title = "Gacha" })
 
 local function buycoin()
     local args = {
@@ -315,7 +280,7 @@ local function buycoin()
             }
         }
     }
-    game:GetService("ReplicatedStorage"):WaitForChild("Utility"):WaitForChild("Warp"):WaitForChild("Index"):WaitForChild("Event"):WaitForChild("Reliable"):FireServer(unpack(args))
+    game:GetService("ReplicatedStorage").Utility.Warp.Index.Event.Reliable:FireServer(unpack(args))
 end
 
 local function spin()
@@ -324,6 +289,18 @@ local function spin()
         {
             {
                 1
+            }
+        }
+    }
+    game:GetService("ReplicatedStorage").Utility.Warp.Index.Event.Reliable:FireServer(unpack(args))
+end
+
+local function spin1()
+    local args = {
+        buffer.fromstring("\013"),
+        {
+            {
+                10
             }
         }
     }
@@ -338,9 +315,9 @@ Tabs.main:Button({
 })
 
 Tabs.main:Button({
-    Title = "buy coin (5)",
+    Title = "buy coin (10)",
     Callback = function()
-        for i = 1, 5 do
+        for i = 1, 10 do
             buycoin()
         end
     end
@@ -354,19 +331,8 @@ Tabs.main:Button({
 })
 
 Tabs.main:Button({
-    Title = "Spin 5",
-    Callback = function()
-        for i = 1, 5 do
-            spin()
-        end
-    end
-})
-
-Tabs.main:Button({
     Title = "Spin 10",
     Callback = function()
-        for i = 1, 10 do
-            spin()
-        end
+        spin1()
     end
 })
